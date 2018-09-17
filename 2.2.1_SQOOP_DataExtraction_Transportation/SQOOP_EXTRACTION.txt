@@ -1,0 +1,71 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% 2.2.1 Data Extraction and Tranformation Module  %%%%%%%%%%%%%%%%% 
+%%%%%%%%%%%%%%      Extract data from MySQL using Sqoop        %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Grant privileges for "localhost" to access to the "CDW_SAPP" database in MySQL:
+[maria_dev@sandbox ~]$ mysql -u root –p
+ mysql> grant all privileges on CDW_SAPP.* to ' '@'localhost';
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%           Source Table in MySql:CDW_SAPP.CDW_SAPP_CREDITCARD                 %%%%%%%%%%%%%%
+%%%%%%%%%%%%%% HDFS file location:/user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_F_CREDIT_CARD_Oozie %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+sqoop import 
+--connect jdbc:mysql://localhost/CDW_SAPP
+--driver com.mysql.jdbc.Driver -m 1 
+--query 'select transaction_id, CONCAT(year,"-",month,"-",day) Time_Id, credit_card_no, cust_ssn, branch_code
+,transaction_type,transaction_value from CDW_SAPP_CREDITCARD WHERE $CONDITIONS' 
+--delete-target-dir
+--target-dir /user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_F_CREDIT_CARD_Oozie
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%             Source Table in MySql:CDW_SAPP.CDW_SAPP_BRANCH                   %%%%%%%%%%%%%%
+%%%%%%%%%%%%%% HDFS file location:/user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_D_BRANCH_Table_Oozie%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+sqoop import --connect jdbc:mysql://localhost/CDW_SAPP
+--driver com.mysql.jdbc.Driver 
+-m 1 
+--query 'select BRANCH_CODE,BRANCH_NAME,BRANCH_STREET ,BRANCH_CITY ,BRANCH_STATE,
+ if(ifnull(BRANCH_ZIP,0)=0,999999, BRANCH_ZIP)BRANCH_ZIP,
+ concat("(" ,substring(Branch_Phone,1,3),") ",substring(Branch_Phone,4,3),
+ "-",substring(Branch_Phone,7,4))Branch_Phone,LAST_UPDATED from CDW_SAPP_BRANCH WHERE $CONDITIONS' 
+--delete-target-dir
+--target-dir /user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_D_BRANCH_Table_Oozie
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%           Source Table in MySql:CDW_SAPP.CDW_SAPP_CREDITCARD                 %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%  HDFS file location:/user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_Time_Id_Oozie      %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+sqoop import --connect jdbc:mysql://localhost/CDW_SAPP --driver com.mysql.jdbc.Driver -m 1 
+--query 'SELECT CONCAT(year,"-",month,"-",day) as Time_ID,DAY,MONTH,CASE WHEN MONTH <=3 THEN "First" WHEN MONTH >3 
+AND MONTH <= 6 THEN "Second" WHEN MONTH > 6 AND MONTH <= 9 THEN "Third" ELSE "Forth" END AS QUARTER, Year from 
+CDW_SAPP_CREDITCARD WHERE $CONDITIONS' 
+--delete-target-dir
+--target-dir /user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_Time_Id_Oozie
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%             Source Table in MySql:CDW_SAPP.CDW_SAPP_CUSTOMER                 %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%   HDFS file location:/user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_D_CUSTOMER_Oozie  %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+sqoop import --connect jdbc:mysql://localhost/CDW_SAPP --driver com.mysql.jdbc.Driver 
+-m 1 
+--query 'select
+SSN as CUST_SSN,
+concat(ucase(substring(FIRST_NAME,1,1)),lcase(substring(FIRST_NAME,2)))CUST_F_NAME,
+Lcase(MIDDLE_NAME)CUST_M_NAME,
+concat(ucase(substring(LAST_NAME,1,1)),lcase(substring(LAST_NAME,2)))CUST_L_NAME,
+CREDIT_CARD_NO,
+concat(STREET_NAME, " ",APT_NO)CUST_STREET,
+CUST_CITY,
+CUST_STATE,
+CUST_COUNTRY,
+CUST_ZIP,
+concat(substring(CUST_PHONE,1,3),"-",substring(CUST_PHONE,4,4))CUST_PHONE,
+CUST_EMAIL,
+LAST_UPDATED 
+from CDW_SAPP_CUSTOMER WHERE $CONDITIONS' 
+--delete-target-dir
+--target-dir /user/maria_dev/AAA_CDW_SAPP/CDW_SAPP_D_CUSTOMER_Oozie
