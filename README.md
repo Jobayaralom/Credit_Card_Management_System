@@ -51,6 +51,7 @@ Credit Card System <SCI.ID. > / Ver: <Ver No.> Release ID: QTAD-SRDUC.doc / 1.0 
 independent, without affecting credit card System.
  Credit Card System <SCI.ID. > / Ver: <Ver No.> Release ID: QTAD-SRDUC.doc / 1.0 / C3: Protected Page 7 of 10
   
+  
   Controlled copy Software Requirements Document
 2 System Requirements
 2.1 Functional Requirements –excel mapping
